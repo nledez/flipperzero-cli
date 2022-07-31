@@ -35,8 +35,15 @@ deactivate
 
 ```
 # Exec `help` command
-./venv/bin/python cli.py --port=/dev/tty<path to Flipper serial> help
+python cli.py --show-banner --port=/dev/tty<path to Flipper serial> help
 
 # Same with other commands
-./venv/bin/python cli.py --port=/dev/tty<path to Flipper serial> storage info /ext
+python cli.py --port=/dev/tty<path to Flipper serial> storage info /ext
+
+# Define parameter as environement varaible
+export FLIPPER_ZERO_SHOW_BANNER=1
+export FLIPPER_ZERO_PORT=/dev/tty<path to Flipper serial>
+
+python cli.py help
+python cli.py storage info /ext
 ```

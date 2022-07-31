@@ -19,19 +19,15 @@ def load_config():
     port = os.environ.get('FLIPPER_ZERO_PORT')
 
     parser.add_argument('-p', '--port', default=port)
-    parser.add_argument('--show-config',
-                        action=argparse.BooleanOptionalAction,
+    parser.add_argument('--show-config', action=argparse.BooleanOptionalAction,
                         default=False)
-    parser.add_argument('-b', '--show-banner',
-                        action=argparse.BooleanOptionalAction,
-                        default=show_banner)
+    parser.add_argument('--show-banner', action=argparse.BooleanOptionalAction,
+                        default=strtobool(show_banner))
 
     (args, garbage) = parser.parse_known_args()
-    # print(args)
-    # print(garbage)
 
     CONFIG["show_config"] = args.show_config
-    CONFIG["show_banner"] = strtobool(args.show_banner)
+    CONFIG["show_banner"] = args.show_banner
     CONFIG["port"] = args.port
 
     return garbage
