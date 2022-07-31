@@ -17,8 +17,10 @@ def load_config():
 
     show_banner = os.environ.get('FLIPPER_ZERO_SHOW_BANNER', 'False')
     port = os.environ.get('FLIPPER_ZERO_PORT')
+    filename = os.environ.get('FLIPPER_ZERO_FILENAME')
 
     parser.add_argument('-p', '--port', default=port)
+    parser.add_argument('-f', '--filename', default=filename)
     parser.add_argument('--show-config', action=argparse.BooleanOptionalAction,
                         default=False)
     parser.add_argument('--show-banner', action=argparse.BooleanOptionalAction,
@@ -29,6 +31,7 @@ def load_config():
     CONFIG["show_config"] = args.show_config
     CONFIG["show_banner"] = args.show_banner
     CONFIG["port"] = args.port
+    CONFIG["filename"] = args.filename
 
     return garbage
 
@@ -90,4 +93,16 @@ if __name__ == '__main__':
     f0.readline()
 
     # Print output
-    print_until_prompt(f0)
+    if command[0:12] == 'storage read' and CONFIG["filename"]:
+        lines = read_until_prompt(f0).split('\n')
+        print(f'Save to {CONFIG["filename"]}')
+        if lines[0][0:5] == 'Size:':
+            lines = lines[1:-3]
+        else:
+            lines = lines[:-3]
+        with open(CONFIG["filename"], 'w') as out:
+            out.writelines('\n'.join(lines))
+            out.write('\n')
+        print('\n'.join(lines))
+    else:
+        print_until_prompt(f0)

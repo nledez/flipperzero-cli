@@ -46,4 +46,5 @@ export FLIPPER_ZERO_PORT=/dev/tty<path to Flipper serial>
 
 python cli.py help
 python cli.py storage info /ext
+python cli.py --filename=demo_windows.txt storage read /ext/badusb/demo_windows.txt
 ```
