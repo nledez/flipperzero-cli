@@ -13,17 +13,17 @@ CONFIG = {}
 
 
 def load_config():
-    parser = argparse.ArgumentParser(description='Flipper zero CLI')
+    parser = argparse.ArgumentParser(description="Flipper zero CLI")
 
-    show_banner = os.environ.get('FLIPPER_ZERO_SHOW_BANNER', 'False')
-    port = os.environ.get('FLIPPER_ZERO_PORT')
-    filename = os.environ.get('FLIPPER_ZERO_FILENAME')
+    show_banner = os.environ.get("FLIPPER_ZERO_SHOW_BANNER", "False")
+    port = os.environ.get("FLIPPER_ZERO_PORT")
+    filename = os.environ.get("FLIPPER_ZERO_FILENAME")
 
-    parser.add_argument('-p', '--port', default=port)
-    parser.add_argument('-f', '--filename', default=filename)
-    parser.add_argument('--show-config', action=argparse.BooleanOptionalAction,
+    parser.add_argument("-p", "--port", default=port)
+    parser.add_argument("-f", "--filename", default=filename)
+    parser.add_argument("--show-config", action=argparse.BooleanOptionalAction,
                         default=False)
-    parser.add_argument('--show-banner', action=argparse.BooleanOptionalAction,
+    parser.add_argument("--show-banner", action=argparse.BooleanOptionalAction,
                         default=strtobool(show_banner))
 
     (args, garbage) = parser.parse_known_args()
@@ -37,15 +37,15 @@ def load_config():
 
 
 def show_config():
-    print(f'show_banner: {CONFIG["show_banner"]}')
-    print(f'port: {CONFIG["port"]}')
+    print(f"show_banner: {CONFIG['show_banner']}")
+    print(f"port: {CONFIG['port']}")
 
 
 def read_until_prompt(f0):
     """
     Read serial until flipper zero prompt print
     """
-    data = f0.read_until(b'>: ')
+    data = f0.read_until(b">: ")
     return data.decode()
 
 
@@ -62,20 +62,20 @@ def print_until_prompt(f0, show_prompt=False, offset=-5):
     print(read_until_prompt(f0)[:offset])
 
 
-if __name__ == '__main__':
-    command = ' '.join(load_config())
+if __name__ == "__main__":
+    command = " ".join(load_config())
     if CONFIG["show_config"]:
         show_config()
     if CONFIG["port"] is None:
-        print('Please configure flipper zero serial port')
+        print("Please configure flipper zero serial port")
         sys.exit(1)
 
     # Get port & command
-    print(f'Command: {command}')
+    print(f"Command: {command}")
 
     # If no command specified, show help
-    if command == '':
-        command = 'help'
+    if command == "":
+        command = "help"
 
     # Open flipper zero serial port
     f0 = serial.Serial(CONFIG["port"], timeout=1)
@@ -93,16 +93,16 @@ if __name__ == '__main__':
     f0.readline()
 
     # Print output
-    if command[0:12] == 'storage read' and CONFIG["filename"]:
-        lines = read_until_prompt(f0).split('\n')
-        print(f'Save to {CONFIG["filename"]}')
-        if lines[0][0:5] == 'Size:':
+    if command[0:12] == "storage read" and CONFIG["filename"]:
+        lines = read_until_prompt(f0).split("\n")
+        print(f"Save to {CONFIG['filename']}")
+        if lines[0][0:5] == "Size:":
             lines = lines[1:-3]
         else:
             lines = lines[:-3]
-        with open(CONFIG["filename"], 'w') as out:
-            out.writelines('\n'.join(lines))
-            out.write('\n')
-        print('\n'.join(lines))
+        with open(CONFIG["filename"], "w") as out:
+            out.writelines("\n".join(lines))
+            out.write("\n")
+        print("\n".join(lines))
     else:
         print_until_prompt(f0)
