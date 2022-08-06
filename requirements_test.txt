@@ -1,2 +1,5 @@
 pytest
 pytest-cov
+pytest-md
+pytest-emoji
+coveralls
