@@ -27,14 +27,18 @@ def load_config():
     parser.add_argument("--show-banner", action='store_true',
                         default=strtobool(show_banner))
 
-    (args, garbage) = parser.parse_known_args()
+    (args, command) = parser.parse_known_args()
 
     CONFIG["show_config"] = args.show_config
     CONFIG["show_banner"] = args.show_banner
     CONFIG["port"] = args.port
     CONFIG["filename"] = args.filename
 
-    return garbage
+    # If no command specified, show help
+    if command == []:
+        command = ["help"]
+
+    return command
 
 
 def show_config():
@@ -73,10 +77,6 @@ def main():
 
     # Get port & command
     print(f"Command: {command}")
-
-    # If no command specified, show help
-    if command == "":
-        command = "help"
 
     # Open flipper zero serial port
     f0 = serial.Serial(CONFIG["port"], timeout=1)
