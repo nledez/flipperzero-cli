@@ -93,6 +93,10 @@ if __name__ == "__main__":
     # Skip command print
     f0.readline()
 
+    if CONFIG["filename"]:
+        if not os.path.exists(CONFIG["filename"]):
+            print(f"{CONFIG['filename']} is missing.")
+            sys.exit(1)
     # Print output
     if command[0:12] == "storage read" and CONFIG["filename"]:
         lines = read_until_prompt(f0).split("\n")
