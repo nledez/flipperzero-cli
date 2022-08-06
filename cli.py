@@ -87,7 +87,7 @@ if __name__ == "__main__":
         read_until_prompt(f0)
 
     # Send command
-    f0.write(f"\n{command}\r\n".encode())
+    f0.write(f"\n{command}\r".encode())
 
     # Skip command print
     f0.readline()
@@ -104,5 +104,11 @@ if __name__ == "__main__":
             out.writelines("\n".join(lines))
             out.write("\n")
         print("\n".join(lines))
+    if command[0:13] == "storage write" and CONFIG["filename"]:
+        with open(CONFIG["filename"], "rb") as fs:
+            f0.write(fs.read())
+        f0.write(b"\x03")
+        print_until_prompt(f0)
     else:
         print_until_prompt(f0)
+    f0.close()
