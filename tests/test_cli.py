@@ -1,4 +1,7 @@
-from flipperzero_cli import CONFIG, load_config
+from flipperzero_cli import CONFIG, load_config, read_until_prompt
+
+import pytest
+from .mock_serial import Serial
 
 DEFAULT_CONFIG = {"filename": None,
                   "port": None,
@@ -64,18 +67,18 @@ def test_load_config(monkeypatch):
 
         # Test with command line parameters
         # -p --port
-        call_with(m, ["-p", "/dev/flipper1"])
+        call_with(m, ["-p", "/dev/flipper0"])
         assert load_config() == DEFAULT_COMMAND
-        assert CONFIG == updated_config({"port": "/dev/flipper1"})
+        assert CONFIG == updated_config({"port": "/dev/flipper0"})
 
-        call_with(m, ["--port", "/dev/flipper2"])
+        call_with(m, ["--port", "/dev/flipper0"])
         assert load_config() == DEFAULT_COMMAND
-        assert CONFIG == updated_config({"port": "/dev/flipper2"})
+        assert CONFIG == updated_config({"port": "/dev/flipper0"})
 
-        call_with(m, ["--port", "/dev/flipper3"],
+        call_with(m, ["--port", "/dev/flipper1"],
                   {"FLIPPER_ZERO_PORT": "/dev/flipper0"})
         assert load_config() == DEFAULT_COMMAND
-        assert CONFIG == updated_config({"port": "/dev/flipper3"})
+        assert CONFIG == updated_config({"port": "/dev/flipper1"})
 
         # -f --filename
         call_with(m, ["-f", "/home/flipper/dolpin1.txt"])
@@ -124,10 +127,17 @@ def test_load_config(monkeypatch):
         assert load_config() == flipper_command
         assert CONFIG == DEFAULT_CONFIG
 
-        call_with(m, ["--port", "/dev/flipper3"]+flipper_command)
+        call_with(m, ["--port", "/dev/flipper0"]+flipper_command)
         assert load_config() == flipper_command
-        assert CONFIG == updated_config({"port": "/dev/flipper3"})
+        assert CONFIG == updated_config({"port": "/dev/flipper0"})
 
-        call_with(m, flipper_command+["--port", "/dev/flipper3"])
+        call_with(m, flipper_command+["--port", "/dev/flipper0"])
         assert load_config() == flipper_command
-        assert CONFIG == updated_config({"port": "/dev/flipper3"})
+        assert CONFIG == updated_config({"port": "/dev/flipper0"})
+
+
+def test_read_until_prompt():
+    f0 = Serial("/dev/flipper0", timeout=1)
+    simple_prompt = b"Text before\nFlipper prompt>: "
+    f0._out_buffer = simple_prompt
+    assert read_until_prompt(f0) == simple_prompt.decode()

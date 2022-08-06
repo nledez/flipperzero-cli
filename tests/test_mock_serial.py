@@ -27,29 +27,29 @@ def test_close():
 
 def test_write():
     s0 = Serial()
-    s0.write("Write a string in serial")
-    assert s0._in_buffer == "Write a string in serial"
-    s0.write("\nWith another line")
-    assert s0._in_buffer == "Write a string in serial\nWith another line"
+    s0.write(b"Write a string in serial")
+    assert s0._in_buffer == b"Write a string in serial"
+    s0.write(b"\nWith another line")
+    assert s0._in_buffer == b"Write a string in serial\nWith another line"
 
 
 def test_read():
     s0 = Serial()
-    s0._out_buffer = "A text waiting in output buffer\nWith many line\nStop."
+    s0._out_buffer = b"A text waiting in output buffer\nWith many line\nStop."
     data = s0.read(24)
-    assert data == "A text waiting in output"
-    assert s0._out_buffer == " buffer\nWith many line\nStop."
+    assert data == b"A text waiting in output"
+    assert s0._out_buffer == b" buffer\nWith many line\nStop."
     data = s0.read(7)
-    assert data == " buffer"
+    assert data == b" buffer"
 
 
 def test_readline():
     s0 = Serial()
-    s0._out_buffer = "line one\nline two\nline three"
-    assert s0.readline() == "line one\n"
-    assert s0.readline() == "line two\n"
-    assert s0.readline() == "line three"
-    assert s0.readline() == ""
+    s0._out_buffer = b"line one\nline two\nline three"
+    assert s0.readline() == b"line one\n"
+    assert s0.readline() == b"line two\n"
+    assert s0.readline() == b"line three"
+    assert s0.readline() == b""
 
 
 def test_NotImplementedError():
@@ -58,3 +58,12 @@ def test_NotImplementedError():
         s0.in_waiting()
     with pytest.raises(NotImplementedError):
         s0.out_waiting()
+
+
+def test_read_until():
+    s0 = Serial()
+    s0._out_buffer = b"Proin varius pretium volutpat. Phasellus pretium nulla"
+    assert s0.read_until(b".") == b"Proin varius pretium volutpat."
+
+    s0._out_buffer = b"Proin varius pretium volutpat. Phasellus pretium nulla"
+    assert s0.read_until(b". ") == b"Proin varius pretium volutpat. "

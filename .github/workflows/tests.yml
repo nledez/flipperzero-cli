@@ -24,7 +24,7 @@ jobs:
           emoji: true
           verbose: false
           job_summary: true
-          custom_arguments: '--cov=flipperzero_cli'
+          custom_arguments: '--cov=flipperzero_cli --cov=tests'
       - name: Upload coverage data to coveralls.io
         run: coveralls --service=github
         env:
