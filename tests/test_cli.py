@@ -14,45 +14,46 @@ def updated_config(data):
     return new_config
 
 
-def test_load_config(monkeypatch):
-    assert CONFIG == {}
+def call_with(m, parameters=[], new_env={}):
+    for k in [
+        "FLIPPER_ZERO_SHOW_BANNER",
+        "FLIPPER_ZERO_PORT",
+        "FLIPPER_ZERO_FILENAME",
+    ]:
+        if k not in new_env:
+            m.delenv(k, raising=False)
+    for k, v in new_env.items():
+        m.setenv(k, v)
 
-    # Test without env variable and command line parameters
+    m.setattr("sys.argv", ["cli.py"] + parameters)
+
+
+def test_load_config(monkeypatch):
     with monkeypatch.context() as m:
-        m.delenv("FLIPPER_ZERO_SHOW_BANNER", raising=False)
-        m.delenv("FLIPPER_ZERO_PORT", raising=False)
-        m.delenv("FLIPPER_ZERO_FILENAME", raising=False)
-        m.setattr("sys.argv", ["cli.py"])
+        # Test without env variable and command line parameters
+        call_with(m, [])
         assert load_config() == []
         assert CONFIG == DEFAULT_CONFIG
 
-    # Only test with env parameters
-    with monkeypatch.context() as m:
-        m.setenv("FLIPPER_ZERO_SHOW_BANNER", "1")
-        m.delenv("FLIPPER_ZERO_PORT", raising=False)
-        m.delenv("FLIPPER_ZERO_FILENAME", raising=False)
+        # Only test with env parameters
+        call_with(m, [], {"FLIPPER_ZERO_SHOW_BANNER": "1"})
         load_config()
         assert CONFIG == updated_config({"show_banner": True})
 
-    with monkeypatch.context() as m:
-        m.delenv("FLIPPER_ZERO_SHOW_BANNER", raising=False)
-        m.setenv("FLIPPER_ZERO_PORT", "/dev/flipper0")
-        m.delenv("FLIPPER_ZERO_FILENAME", raising=False)
+        call_with(m, [], {"FLIPPER_ZERO_PORT": "/dev/flipper0"})
         load_config()
         assert CONFIG == updated_config({"port": "/dev/flipper0"})
 
-    with monkeypatch.context() as m:
-        m.delenv("FLIPPER_ZERO_SHOW_BANNER", raising=False)
-        m.delenv("FLIPPER_ZERO_PORT", raising=False)
-        m.setenv("FLIPPER_ZERO_FILENAME", "/home/flipper/dolpin.txt")
+        call_with(m, [], {"FLIPPER_ZERO_FILENAME": "/home/flipper/dolpin.txt"})
         load_config()
         assert CONFIG == updated_config({"filename":
                                          "/home/flipper/dolpin.txt"})
 
-    with monkeypatch.context() as m:
-        m.setenv("FLIPPER_ZERO_SHOW_BANNER", "1")
-        m.setenv("FLIPPER_ZERO_PORT", "/dev/flipper0")
-        m.setenv("FLIPPER_ZERO_FILENAME", "/home/flipper/dolpin.txt")
+        call_with(m, [], {
+            "FLIPPER_ZERO_SHOW_BANNER": "1",
+            "FLIPPER_ZERO_PORT": "/dev/flipper0",
+            "FLIPPER_ZERO_FILENAME": "/home/flipper/dolpin.txt",
+        })
         load_config()
         assert CONFIG == updated_config({
             "show_banner": True,
@@ -60,58 +61,48 @@ def test_load_config(monkeypatch):
             "filename": "/home/flipper/dolpin.txt",
         })
 
-    # Test with command line parameters
-    with monkeypatch.context() as m:
-        m.delenv("FLIPPER_ZERO_SHOW_BANNER", raising=False)
-        m.delenv("FLIPPER_ZERO_PORT", raising=False)
-        m.delenv("FLIPPER_ZERO_FILENAME", raising=False)
-
+        # Test with command line parameters
         # -p --port
-        m.setattr("sys.argv", ["cli.py", "-p", "/dev/flipper1"])
+        call_with(m, ["-p", "/dev/flipper1"])
         assert load_config() == []
         assert CONFIG == updated_config({"port": "/dev/flipper1"})
 
-        m.setattr("sys.argv", ["cli.py", "--port", "/dev/flipper2"])
+        call_with(m, ["--port", "/dev/flipper2"])
         assert load_config() == []
         assert CONFIG == updated_config({"port": "/dev/flipper2"})
 
-        m.setenv("FLIPPER_ZERO_PORT", "/dev/flipper0")
-        m.setattr("sys.argv", ["cli.py", "--port", "/dev/flipper3"])
+        call_with(m, ["--port", "/dev/flipper3"],
+                  {"FLIPPER_ZERO_PORT": "/dev/flipper0"})
         assert load_config() == []
         assert CONFIG == updated_config({"port": "/dev/flipper3"})
-        m.delenv("FLIPPER_ZERO_PORT", raising=False)
 
         # -f --filename
-        m.setattr("sys.argv", ["cli.py", "-f", "/home/flipper/dolpin1.txt"])
+        call_with(m, ["-f", "/home/flipper/dolpin1.txt"])
         assert load_config() == []
         assert CONFIG == updated_config({"filename":
                                          "/home/flipper/dolpin1.txt"})
 
-        m.setattr("sys.argv", ["cli.py", "--filename",
-                               "/home/flipper/dolpin2.txt"])
+        call_with(m, [ "--filename", "/home/flipper/dolpin2.txt"])
         assert load_config() == []
         assert CONFIG == updated_config({"filename":
                                          "/home/flipper/dolpin2.txt"})
 
-        m.setenv("FLIPPER_ZERO_FILENAME", "/home/flipper/dolpin.txt")
-        m.setattr("sys.argv", ["cli.py", "-f", "/home/flipper/dolpin3.txt"])
+        call_with(m, ["-f", "/home/flipper/dolpin3.txt"],
+                  {"FLIPPER_ZERO_FILENAME": "/home/flipper/dolpin.txt"})
         assert load_config() == []
         assert CONFIG == updated_config({"filename":
                                          "/home/flipper/dolpin3.txt"})
-        m.delenv("FLIPPER_ZERO_FILENAME", raising=False)
 
         # --show-banner
-        m.setattr("sys.argv", ["cli.py", "--show-banner"])
+        call_with(m, ["--show-banner"])
         assert load_config() == []
         assert CONFIG == updated_config({"show_banner": True})
 
-        m.setenv("FLIPPER_ZERO_SHOW_BANNER", "1")
-        m.setattr("sys.argv", ["cli.py", "--show-banner"])
+        call_with(m, ["--show-banner"], {"FLIPPER_ZERO_SHOW_BANNER": "1"})
         assert load_config() == []
         assert CONFIG == updated_config({"show_banner": True})
-        m.delenv("FLIPPER_ZERO_SHOW_BANNER", raising=False)
 
         # --show-config
-        m.setattr("sys.argv", ["cli.py", "--show-config"])
+        call_with(m, ["--show-config"])
         assert load_config() == []
         assert CONFIG == updated_config({"show_config": True})
