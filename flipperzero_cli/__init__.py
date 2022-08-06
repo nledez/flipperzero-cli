@@ -88,6 +88,22 @@ def flipper_init(s=serial.Serial):
     return (command, f0)
 
 
+def storage_read(f0):
+    lines = read_until_prompt(f0).split("\n")
+    size = int(lines[0][6:])
+    lines = lines[1:-3]
+
+    return (size, "\n".join(lines)+"\n")
+
+
+def save_file(content, filename, output=False):
+    print(f"Save to {filename}")
+    with open(filename, "w") as out:
+        out.write(content)
+    if output:
+        print(content)
+
+
 def main():
     (command, f0) = flipper_init()
     if CONFIG["show_config"]:
@@ -111,16 +127,8 @@ def main():
 
     # Print output
     if command[0:12] == "storage read" and CONFIG["filename"]:
-        lines = read_until_prompt(f0).split("\n")
-        print(f"Save to {CONFIG['filename']}")
-        if lines[0][0:5] == "Size:":
-            lines = lines[1:-3]
-        else:
-            lines = lines[:-3]
-        with open(CONFIG["filename"], "w") as out:
-            out.writelines("\n".join(lines))
-            out.write("\n")
-        print("\n".join(lines))
+        (content, lines) = storage_read(f0)
+        save_file(content, CONFIG["filename"], output=True)
     if command[0:13] == "storage write" and CONFIG["filename"]:
         # Check if filename exist
         if CONFIG["filename"]:

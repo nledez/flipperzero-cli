@@ -1,10 +1,11 @@
 from flipperzero_cli import CONFIG, load_config, show_config, \
     read_until_prompt, print_until_prompt, check_file_presence, \
-    flipper_init
+    flipper_init, storage_read, save_file
 
+import builtins
 import pytest
 
-from unittest.mock import patch
+from unittest.mock import patch, mock_open
 from .mock_serial import Serial
 
 DEFAULT_CONFIG = {"filename": None,
@@ -242,3 +243,45 @@ def test_flipper_init(monkeypatch, capsys):
         call_with(m, [], {"FLIPPER_ZERO_PORT": "/dev/flipper0"})
         (command, f0) = flipper_init(s=Serial)
     assert command == "help"
+
+
+STORAGE_READ_01_HEADER = b"""Size: 164
+"""
+STORAGE_READ_01_CONTENT = b"""In faucibus dignissim ullamcorper.
+Nulla quis molestie lacus.
+Pellentesque congue dui et felis pharetra eleifend.
+Integer magna eros. efficitur sed porta sit amet.
+"""
+STORAGE_READ_01_FOOTER = b"""
+
+>: ."""
+
+STORAGE_READ_01_RAW = STORAGE_READ_01_HEADER + \
+    STORAGE_READ_01_CONTENT + \
+    STORAGE_READ_01_FOOTER
+
+
+def test_storage_read():
+    f0 = Serial()
+    f0._out_buffer = STORAGE_READ_01_RAW
+    (size, data) = storage_read(f0)
+    assert size == 164
+    assert data == STORAGE_READ_01_CONTENT.decode()
+
+
+def test_save_file(capsys):
+    mock_write = mock_open()
+    with patch.object(builtins, 'open', mock_write, create=True) as patched_open:
+        save_file(STORAGE_READ_01_CONTENT.decode(),
+                "/tmp/file_2_save.txt",
+                output=False)
+        captured = capsys.readouterr()
+        assert captured.out == "Save to /tmp/file_2_save.txt\n"
+        assert patched_open.mock_calls[2][1][0] == STORAGE_READ_01_CONTENT.decode()
+
+        save_file(STORAGE_READ_01_CONTENT.decode(),
+                "/tmp/file_2_save.txt",
+                output=True)
+        captured = capsys.readouterr()
+        assert captured.out == "Save to /tmp/file_2_save.txt\n" + \
+            STORAGE_READ_01_CONTENT.decode() + "\n"
