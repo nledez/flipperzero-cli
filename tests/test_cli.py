@@ -1,5 +1,6 @@
 from flipperzero_cli import CONFIG, load_config, show_config, \
-    read_until_prompt, print_until_prompt, check_file_presence
+    read_until_prompt, print_until_prompt, check_file_presence, \
+    flipper_init
 
 import pytest
 
@@ -9,6 +10,7 @@ from .mock_serial import Serial
 DEFAULT_CONFIG = {"filename": None,
                   "port": None,
                   "show_banner": 0,
+                  "hide_command": False,
                   "show_config": False}
 DEFAULT_COMMAND = ["help"]
 
@@ -25,6 +27,7 @@ def updated_config(data):
 def call_with(m, parameters=[], new_env={}):
     for k in [
         "FLIPPER_ZERO_SHOW_BANNER",
+        "FLIPPER_ZERO_HIDE_COMMAND",
         "FLIPPER_ZERO_PORT",
         "FLIPPER_ZERO_FILENAME",
     ]:
@@ -49,6 +52,10 @@ def test_load_config(monkeypatch):
         load_config()
         assert CONFIG == updated_config({"show_banner": True})
 
+        call_with(m, [], {"FLIPPER_ZERO_HIDE_COMMAND": "1"})
+        load_config()
+        assert CONFIG == updated_config({"hide_command": True})
+
         call_with(m, [], {"FLIPPER_ZERO_PORT": "/dev/flipper0"})
         load_config()
         assert CONFIG == updated_config({"port": "/dev/flipper0"})
@@ -60,12 +67,14 @@ def test_load_config(monkeypatch):
 
         call_with(m, [], {
             "FLIPPER_ZERO_SHOW_BANNER": "1",
+            "FLIPPER_ZERO_HIDE_COMMAND": "0",
             "FLIPPER_ZERO_PORT": "/dev/flipper0",
             "FLIPPER_ZERO_FILENAME": "/home/flipper/dolpin.txt",
         })
         load_config()
         assert CONFIG == updated_config({
             "show_banner": True,
+            "hide_command": False,
             "port": "/dev/flipper0",
             "filename": "/home/flipper/dolpin.txt",
         })
@@ -111,6 +120,15 @@ def test_load_config(monkeypatch):
         assert load_config() == DEFAULT_COMMAND
         assert CONFIG == updated_config({"show_banner": True})
 
+        # --hide-command
+        call_with(m, ["--hide-command"])
+        assert load_config() == DEFAULT_COMMAND
+        assert CONFIG == updated_config({"hide_command": True})
+
+        call_with(m, ["--hide-command"], {"FLIPPER_ZERO_HIDE_COMMAND": "1"})
+        assert load_config() == DEFAULT_COMMAND
+        assert CONFIG == updated_config({"hide_command": True})
+
         # --show-config
         call_with(m, ["--show-config"])
         assert load_config() == DEFAULT_COMMAND
@@ -147,19 +165,19 @@ def test_show_config(monkeypatch, capsys):
         load_config()
         show_config()
         captured = capsys.readouterr()
-        assert captured.out == "show_banner: 0\nport: /dev/flipper0\n"
+        assert captured.out == "show_banner: 0\nhide_command: 0\nport: /dev/flipper0\n"
 
-        call_with(m, ["--port", "/dev/flipper1"])
+        call_with(m, ["--port", "/dev/flipper1", "--hide-command"])
         load_config()
         show_config()
         captured = capsys.readouterr()
-        assert captured.out == "show_banner: 0\nport: /dev/flipper1\n"
+        assert captured.out == "show_banner: 0\nhide_command: True\nport: /dev/flipper1\n"
 
         call_with(m, ["--show-banner", "--port", "/dev/flipper1"])
         load_config()
         show_config()
         captured = capsys.readouterr()
-        assert captured.out == "show_banner: True\nport: /dev/flipper1\n"
+        assert captured.out == "show_banner: True\nhide_command: 0\nport: /dev/flipper1\n"
 
 
 def test_read_until_prompt():
@@ -209,3 +227,18 @@ def test_check_file_presence(patch_exists):
     # Test existing file
     patch_exists.return_value = True
     assert check_file_presence("/tmp/existing_file") == True
+
+
+def test_flipper_init(monkeypatch, capsys):
+    with pytest.raises(SystemExit) as e:
+        (command, f0) = flipper_init()
+    assert e.type == SystemExit
+    assert e.value.code == 1
+
+    captured = capsys.readouterr()
+    assert captured.out == "Please configure flipper zero serial port\n"
+
+    with monkeypatch.context() as m:
+        call_with(m, [], {"FLIPPER_ZERO_PORT": "/dev/flipper0"})
+        (command, f0) = flipper_init(s=Serial)
+    assert command == "help"

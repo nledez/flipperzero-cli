@@ -17,6 +17,7 @@ def load_config():
     parser = argparse.ArgumentParser(description="Flipper zero CLI")
 
     show_banner = os.environ.get("FLIPPER_ZERO_SHOW_BANNER", "False")
+    hide_command = os.environ.get("FLIPPER_ZERO_HIDE_COMMAND", "False")
     port = os.environ.get("FLIPPER_ZERO_PORT")
     filename = os.environ.get("FLIPPER_ZERO_FILENAME")
 
@@ -26,11 +27,14 @@ def load_config():
                         default=False)
     parser.add_argument("--show-banner", action='store_true',
                         default=strtobool(show_banner))
+    parser.add_argument("--hide-command", action='store_true',
+                        default=strtobool(hide_command))
 
     (args, command) = parser.parse_known_args()
 
     CONFIG["show_config"] = args.show_config
     CONFIG["show_banner"] = args.show_banner
+    CONFIG["hide_command"] = args.hide_command
     CONFIG["port"] = args.port
     CONFIG["filename"] = args.filename
 
@@ -43,6 +47,7 @@ def load_config():
 
 def show_config():
     print(f"show_banner: {CONFIG['show_banner']}")
+    print(f"hide_command: {CONFIG['hide_command']}")
     print(f"port: {CONFIG['port']}")
 
 
@@ -71,19 +76,26 @@ def check_file_presence(filename):
     return True
 
 
-def main():
+def flipper_init(s=serial.Serial):
     command = " ".join(load_config())
-    if CONFIG["show_config"]:
-        show_config()
     if CONFIG["port"] is None:
         print("Please configure flipper zero serial port")
         sys.exit(1)
 
-    # Print command
-    print(f"Command: {command}")
-
     # Open flipper zero serial port
-    f0 = serial.Serial(CONFIG["port"], timeout=1)
+    f0 = s(CONFIG["port"], timeout=1)
+
+    return (command, f0)
+
+
+def main():
+    (command, f0) = flipper_init()
+    if CONFIG["show_config"]:
+        show_config()
+
+    # Print command
+    if not CONFIG["hide_command"]:
+        print(f"Command: {command}")
 
     # Show banner. Or not.
     if CONFIG["show_banner"]:
