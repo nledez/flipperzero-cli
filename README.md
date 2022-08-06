@@ -48,4 +48,5 @@ python cli.py help
 python cli.py storage info /ext
 python cli.py --filename=demo_windows.txt storage read /ext/badusb/demo_windows.txt
 python cli.py --filename=demo_linux.txt storage write /ext/badusb/demo_linux.txt
+python cli.py --filename=demo_macos.txt storage md5 /ext/badusb/demo_macos.txt
 ```

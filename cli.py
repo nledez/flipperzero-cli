@@ -4,6 +4,7 @@
 import os
 import sys
 import serial
+import hashlib
 import argparse
 
 from distutils.util import strtobool
@@ -109,6 +110,17 @@ if __name__ == "__main__":
             f0.write(fs.read())
         f0.write(b"\x03")
         print_until_prompt(f0)
+    if command[0:11] == "storage md5" and CONFIG["filename"]:
+        with open(CONFIG["filename"], "rb") as fs:
+            localhash = hashlib.md5(fs.read()).hexdigest()
+        remotehash = f0.readline().decode().rstrip()
+        read_until_prompt(f0)
+        if localhash == remotehash:
+            print(f"OK, same hash ({localhash})")
+        else:
+            print("KO different hashes:")
+            print(f"local: '{localhash}'")
+            print(f"remote: '{remotehash}'")
     else:
         print_until_prompt(f0)
     f0.close()
