@@ -63,7 +63,7 @@ def print_until_prompt(f0, show_prompt=False, offset=-5):
     print(read_until_prompt(f0)[:offset])
 
 
-if __name__ == "__main__":
+def main():
     command = " ".join(load_config())
     if CONFIG["show_config"]:
         show_config()
@@ -128,3 +128,7 @@ if __name__ == "__main__":
     else:
         print_until_prompt(f0)
     f0.close()
+
+
+if __name__ == "__main__":
+    main()

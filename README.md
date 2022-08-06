@@ -31,6 +31,13 @@ python3 -m venv venv
 deactivate
 ```
 
+## Install for test
+
+```
+pip install -r requirements.txt -r requirements_test.txt
+pytest
+```
+
 ### Tools
 
 ```
