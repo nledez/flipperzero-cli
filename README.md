@@ -1,5 +1,7 @@
 # CLI for Flipper zero
 
+[![Tests on push](https://github.com/nledez/flipperzero-cli/actions/workflows/tests.yml/badge.svg)](https://github.com/nledez/flipperzero-cli/actions/workflows/tests.yml) [![Coverage Status](https://coveralls.io/repos/github/nledez/flipperzero-cli/badge.svg)](https://coveralls.io/github/nledez/flipperzero-cli)
+
 Inspirated from:
 
 https://github.com/lomalkin/flipperzero-cli-tools
