@@ -1,6 +1,9 @@
-from flipperzero_cli import CONFIG, load_config, read_until_prompt
+from flipperzero_cli import CONFIG, load_config, show_config, \
+    read_until_prompt, print_until_prompt, check_file_presence
 
 import pytest
+
+from unittest.mock import patch
 from .mock_serial import Serial
 
 DEFAULT_CONFIG = {"filename": None,
@@ -10,6 +13,7 @@ DEFAULT_CONFIG = {"filename": None,
 DEFAULT_COMMAND = ["help"]
 
 
+# Helpers
 def updated_config(data):
     new_config = DEFAULT_CONFIG.copy()
     for k, v in data.items():
@@ -32,6 +36,7 @@ def call_with(m, parameters=[], new_env={}):
     m.setattr("sys.argv", ["cli.py"] + parameters)
 
 
+# Tests
 def test_load_config(monkeypatch):
     with monkeypatch.context() as m:
         # Test without env variable and command line parameters
@@ -136,8 +141,71 @@ def test_load_config(monkeypatch):
         assert CONFIG == updated_config({"port": "/dev/flipper0"})
 
 
+def test_show_config(monkeypatch, capsys):
+    with monkeypatch.context() as m:
+        call_with(m, ["--port", "/dev/flipper0"])
+        load_config()
+        show_config()
+        captured = capsys.readouterr()
+        assert captured.out == "show_banner: 0\nport: /dev/flipper0\n"
+
+        call_with(m, ["--port", "/dev/flipper1"])
+        load_config()
+        show_config()
+        captured = capsys.readouterr()
+        assert captured.out == "show_banner: 0\nport: /dev/flipper1\n"
+
+        call_with(m, ["--show-banner", "--port", "/dev/flipper1"])
+        load_config()
+        show_config()
+        captured = capsys.readouterr()
+        assert captured.out == "show_banner: True\nport: /dev/flipper1\n"
+
+
 def test_read_until_prompt():
-    f0 = Serial("/dev/flipper0", timeout=1)
-    simple_prompt = b"Text before\nFlipper prompt>: "
+    f0 = Serial()
+    simple_prompt = b"Text before\nFlipper prompt\n>: "
     f0._out_buffer = simple_prompt
     assert read_until_prompt(f0) == simple_prompt.decode()
+
+
+FLIPPER_SD_INFO_PRINT = """Label: FLIPPER SD
+Type: FAT32
+3886080KB total
+3841024KB free
+"""
+FLIPPER_SD_INFO = FLIPPER_SD_INFO_PRINT.encode() + b"""
+>: ."""
+
+
+def test_print_until_prompt(capsys):
+    f0 = Serial()
+    simple_prompt = b"Text before\nFlipper prompt\n>: "
+    f0._out_buffer = simple_prompt
+    print_until_prompt(f0, show_prompt=True)
+    captured = capsys.readouterr()
+    assert captured.out == simple_prompt.decode()+"\n"
+
+    f0._out_buffer = FLIPPER_SD_INFO
+    print_until_prompt(f0, show_prompt=True)
+    captured = capsys.readouterr()
+    assert captured.out == FLIPPER_SD_INFO.decode()[:-1]+"\n"
+
+    f0._out_buffer = FLIPPER_SD_INFO
+    print_until_prompt(f0, show_prompt=False)
+    captured = capsys.readouterr()
+    assert captured.out == FLIPPER_SD_INFO_PRINT
+
+
+@patch('os.path.exists')
+def test_check_file_presence(patch_exists):
+    # Test missing file
+    patch_exists.return_value = False
+    with pytest.raises(SystemExit) as e:
+        check_file_presence("/tmp/missing_file")
+    assert e.type == SystemExit
+    assert e.value.code == 1
+
+    # Test existing file
+    patch_exists.return_value = True
+    assert check_file_presence("/tmp/existing_file") == True

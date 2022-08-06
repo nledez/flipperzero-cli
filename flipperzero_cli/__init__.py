@@ -59,12 +59,16 @@ def print_until_prompt(f0, show_prompt=False, offset=-5):
     If show prompt remove latest chars with an offset
     """
     if show_prompt:
-        offset = -0
+        print(read_until_prompt(f0))
     else:
-        offset = offset
+        print(read_until_prompt(f0)[:offset])
 
-    # Print output
-    print(read_until_prompt(f0)[:offset])
+
+def check_file_presence(filename):
+    if not os.path.exists(filename):
+        print(f"{filename} is missing.")
+        sys.exit(1)
+    return True
 
 
 def main():
@@ -75,13 +79,13 @@ def main():
         print("Please configure flipper zero serial port")
         sys.exit(1)
 
-    # Get port & command
+    # Print command
     print(f"Command: {command}")
 
     # Open flipper zero serial port
     f0 = serial.Serial(CONFIG["port"], timeout=1)
 
-    # Banner time
+    # Show banner. Or not.
     if CONFIG["show_banner"]:
         print_until_prompt(f0)
     else:
@@ -90,13 +94,9 @@ def main():
     # Send command
     f0.write(f"\n{command}\r".encode())
 
-    # Skip command print
+    # Flush command print
     f0.readline()
 
-    if CONFIG["filename"]:
-        if not os.path.exists(CONFIG["filename"]):
-            print(f"{CONFIG['filename']} is missing.")
-            sys.exit(1)
     # Print output
     if command[0:12] == "storage read" and CONFIG["filename"]:
         lines = read_until_prompt(f0).split("\n")
@@ -110,11 +110,16 @@ def main():
             out.write("\n")
         print("\n".join(lines))
     if command[0:13] == "storage write" and CONFIG["filename"]:
+        # Check if filename exist
+        if CONFIG["filename"]:
+            check_file_presence(CONFIG["filename"])
         with open(CONFIG["filename"], "rb") as fs:
             f0.write(fs.read())
         f0.write(b"\x03")
         print_until_prompt(f0)
     if command[0:11] == "storage md5" and CONFIG["filename"]:
+        if CONFIG["filename"]:
+            check_file_presence(CONFIG["filename"])
         with open(CONFIG["filename"], "rb") as fs:
             localhash = hashlib.md5(fs.read()).hexdigest()
         remotehash = f0.readline().decode().rstrip()
