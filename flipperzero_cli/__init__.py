@@ -112,6 +112,15 @@ def download_from_flipper(f0, filename, output=True):
     save_file(content, filename, output)
 
 
+def upload_to_flipper(f0, filename):
+    # Check if filename exist
+    check_file_presence(filename)
+    with open(filename, "rb") as fs:
+        f0.write(fs.read())
+    f0.write(b"\x03")
+    print_until_prompt(f0)
+
+
 def main(s=serial.Serial):
     (command, f0) = flipper_init(s)
     if CONFIG["show_config"]:
@@ -137,13 +146,7 @@ def main(s=serial.Serial):
     if command[0:12] == "storage read" and CONFIG["filename"]:
         download_from_flipper(f0, CONFIG["filename"])
     if command[0:13] == "storage write" and CONFIG["filename"]:
-        # Check if filename exist
-        if CONFIG["filename"]:
-            check_file_presence(CONFIG["filename"])
-        with open(CONFIG["filename"], "rb") as fs:
-            f0.write(fs.read())
-        f0.write(b"\x03")
-        print_until_prompt(f0)
+        upload_to_flipper(f0, CONFIG["filename"])
     if command[0:11] == "storage md5" and CONFIG["filename"]:
         if CONFIG["filename"]:
             check_file_presence(CONFIG["filename"])

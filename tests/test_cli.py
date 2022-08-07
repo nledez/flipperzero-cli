@@ -1,7 +1,8 @@
 from flipperzero_cli import CONFIG, load_config, show_config, \
     read_until_prompt, print_until_prompt, check_file_presence, \
-    flipper_init, storage_read, save_file, download_from_flipper, \
-    main
+    flipper_init, main, \
+    storage_read, save_file, download_from_flipper, \
+    upload_to_flipper
 
 import builtins
 import pytest
@@ -297,6 +298,25 @@ def test_download_from_flipper(capsys):
     captured = capsys.readouterr()
     assert captured.out == "Save to /tmp/file_2_save.txt\n"
 
+STORAGE_WRITE_01_HEADER = b"Just write your text data. New line by Ctrl+Enter, exit by Ctrl+C.\n\n"
+STORAGE_WRITE_01_FOOTER = b"""
+>: """
+STORAGE_WRITE_01_OUT = STORAGE_WRITE_01_HEADER + \
+    STORAGE_READ_01_CONTENT
+STORAGE_WRITE_01_RAW = STORAGE_WRITE_01_OUT + \
+    STORAGE_WRITE_01_FOOTER
+
+@patch('os.path.exists')
+def test_upload_to_flipper(patch_exists, capsys):
+    f0 = Serial()
+    f0._out_buffer = STORAGE_WRITE_01_RAW
+    patch_exists.return_value = True
+    with patch("builtins.open", mock_open(read_data=STORAGE_READ_01_CONTENT)) as mock_file:
+        upload_to_flipper(f0, "/tmp/file_2_upload.txt")
+    mock_file.assert_called_with("/tmp/file_2_upload.txt", "rb")
+    captured = capsys.readouterr()
+    assert captured.out == STORAGE_WRITE_01_OUT.decode()
+
 
 def test_main(monkeypatch, capsys):
     with pytest.raises(SystemExit) as e:
@@ -342,3 +362,13 @@ Command: help
             assert e.value.code == 1
             captured = capsys.readouterr()
             assert captured.out == "Command: storage read /ext/badusb/demo_macos.txt\nError in storage read\n"
+
+        call_with(m, ["--filename=/tmp/to_write.txt",
+                        "storage", "write", "/ext/badusb/demo_macos.txt"],
+                    {"FLIPPER_ZERO_PORT": "/dev/flipper0"})
+        with pytest.raises(SystemExit) as e:
+            main(s=Serial)
+        assert e.type == SystemExit
+        assert e.value.code == 1
+        captured = capsys.readouterr()
+        assert captured.out == "Command: storage write /ext/badusb/demo_macos.txt\n/tmp/to_write.txt is missing.\n"
