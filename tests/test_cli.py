@@ -1,6 +1,7 @@
 from flipperzero_cli import CONFIG, load_config, show_config, \
     read_until_prompt, print_until_prompt, check_file_presence, \
-    flipper_init, storage_read, save_file
+    flipper_init, storage_read, save_file, download_from_flipper, \
+    main
 
 import builtins
 import pytest
@@ -285,3 +286,59 @@ def test_save_file(capsys):
         captured = capsys.readouterr()
         assert captured.out == "Save to /tmp/file_2_save.txt\n" + \
             STORAGE_READ_01_CONTENT.decode() + "\n"
+
+
+def test_download_from_flipper(capsys):
+    f0 = Serial()
+    f0._out_buffer = STORAGE_READ_01_RAW
+    mock_write = mock_open()
+    with patch.object(builtins, 'open', mock_write, create=True) as patched_open:
+        download_from_flipper(f0, "/tmp/file_2_save.txt", output=False)
+    captured = capsys.readouterr()
+    assert captured.out == "Save to /tmp/file_2_save.txt\n"
+
+
+def test_main(monkeypatch, capsys):
+    with pytest.raises(SystemExit) as e:
+        main()
+    assert e.type == SystemExit
+    assert e.value.code == 1
+
+    captured = capsys.readouterr()
+    assert captured.out == "Please configure flipper zero serial port\n"
+
+    with monkeypatch.context() as m:
+        call_with(m, [], {"FLIPPER_ZERO_PORT": "/dev/flipper0"})
+        main(s=Serial)
+        captured = capsys.readouterr()
+        assert captured.out == "Command: help\n\n"
+
+    with monkeypatch.context() as m:
+        call_with(m, ["--show-config"], {"FLIPPER_ZERO_PORT": "/dev/flipper0"})
+        main(s=Serial)
+        captured = capsys.readouterr()
+        assert captured.out == """show_banner: 0
+hide_command: 0
+port: /dev/flipper0
+Command: help
+
+"""
+
+    with monkeypatch.context() as m:
+        call_with(m, ["--show-banner"], {"FLIPPER_ZERO_PORT": "/dev/flipper0"})
+        main(s=Serial)
+        captured = capsys.readouterr()
+        assert captured.out == "Command: help\n\n\n"
+
+    with monkeypatch.context() as m:
+        mock_write = mock_open()
+        with patch.object(builtins, 'open', mock_write, create=True) as patched_open:
+            call_with(m, ["--filename=/tmp/to_save.txt",
+                          "storage", "read", "/ext/badusb/demo_macos.txt"],
+                      {"FLIPPER_ZERO_PORT": "/dev/flipper0"})
+            with pytest.raises(SystemExit) as e:
+                main(s=Serial)
+            assert e.type == SystemExit
+            assert e.value.code == 1
+            captured = capsys.readouterr()
+            assert captured.out == "Command: storage read /ext/badusb/demo_macos.txt\nError in storage read\n"
