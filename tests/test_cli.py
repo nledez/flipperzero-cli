@@ -2,7 +2,7 @@ from flipperzero_cli import CONFIG, load_config, show_config, \
     read_until_prompt, print_until_prompt, check_file_presence, \
     flipper_init, main, \
     storage_read, save_file, download_from_flipper, \
-    upload_to_flipper
+    upload_to_flipper, check_local_md5, compare_md5
 
 import builtins
 import pytest
@@ -318,6 +318,38 @@ def test_upload_to_flipper(patch_exists, capsys):
     assert captured.out == STORAGE_WRITE_01_OUT.decode()
 
 
+def test_check_local_md5():
+    with patch("builtins.open", mock_open(read_data=STORAGE_READ_01_CONTENT)) as mock_file:
+        localhash = check_local_md5("/tmp/local_filename.txt")
+    mock_file.assert_called_with("/tmp/local_filename.txt", "rb")
+    assert localhash == "9cb4a477cbbf515f7dffb459f1e05594"
+
+
+GOD_HASH = "9cb4a477cbbf515f7dffb459f1e05594"
+BAD_HASH = "a7b073ead2a733491a4a407e777b2e59"
+@patch("os.path.exists")
+@patch("flipperzero_cli.check_local_md5")
+def test_compare_md5(patch_check_local_md5, patch_exists, capsys):
+    f0 = Serial()
+    f0._out_buffer = f"{GOD_HASH}\n\n>: ".encode()
+    patch_exists.return_value = True
+    patch_check_local_md5.return_value = GOD_HASH
+    compare_md5(f0, "/tmp/local_filename.txt")
+    captured = capsys.readouterr()
+    assert captured.out == f"OK, same hash ({GOD_HASH})\n"
+
+    f0 = Serial()
+    f0._out_buffer = f"{GOD_HASH}\n\n>: ".encode()
+    patch_exists.return_value = True
+    patch_check_local_md5.return_value = BAD_HASH
+    compare_md5(f0, "/tmp/local_filename.txt")
+    captured = capsys.readouterr()
+    assert captured.out == f"""KO different hashes:
+local: '{BAD_HASH}'
+remote: '{GOD_HASH}'
+"""
+
+
 def test_main(monkeypatch, capsys):
     with pytest.raises(SystemExit) as e:
         main()
@@ -372,3 +404,16 @@ Command: help
         assert e.value.code == 1
         captured = capsys.readouterr()
         assert captured.out == "Command: storage write /ext/badusb/demo_macos.txt\n/tmp/to_write.txt is missing.\n"
+
+    with monkeypatch.context() as m:
+        call_with(m, [
+            "--filename=/tmp/to_md5.txt", "storage", "md5",
+            "/ext/badusb/demo_macos.txt"],
+            {"FLIPPER_ZERO_PORT": "/dev/flipper0"})
+        with pytest.raises(SystemExit) as e:
+            main(s=Serial)
+        captured = capsys.readouterr()
+        assert captured.out == \
+            """Command: storage md5 /ext/badusb/demo_macos.txt
+/tmp/to_md5.txt is missing.
+"""

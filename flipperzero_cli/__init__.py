@@ -121,6 +121,24 @@ def upload_to_flipper(f0, filename):
     print_until_prompt(f0)
 
 
+def check_local_md5(filename):
+    with open(filename, "rb") as fs:
+        return hashlib.md5(fs.read()).hexdigest()
+
+
+def compare_md5(f0, filename):
+    check_file_presence(filename)
+    localhash = check_local_md5(filename)
+    remotehash = f0.readline().decode().rstrip()
+    read_until_prompt(f0)
+    if localhash == remotehash:
+        print(f"OK, same hash ({localhash})")
+    else:
+        print("KO different hashes:")
+        print(f"local: '{localhash}'")
+        print(f"remote: '{remotehash}'")
+
+
 def main(s=serial.Serial):
     (command, f0) = flipper_init(s)
     if CONFIG["show_config"]:
@@ -148,18 +166,7 @@ def main(s=serial.Serial):
     if command[0:13] == "storage write" and CONFIG["filename"]:
         upload_to_flipper(f0, CONFIG["filename"])
     if command[0:11] == "storage md5" and CONFIG["filename"]:
-        if CONFIG["filename"]:
-            check_file_presence(CONFIG["filename"])
-        with open(CONFIG["filename"], "rb") as fs:
-            localhash = hashlib.md5(fs.read()).hexdigest()
-        remotehash = f0.readline().decode().rstrip()
-        read_until_prompt(f0)
-        if localhash == remotehash:
-            print(f"OK, same hash ({localhash})")
-        else:
-            print("KO different hashes:")
-            print(f"local: '{localhash}'")
-            print(f"remote: '{remotehash}'")
+        compare_md5(f0, CONFIG["filename"])
     else:
         print_until_prompt(f0)
     f0.close()
