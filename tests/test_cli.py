@@ -218,7 +218,7 @@ def test_print_until_prompt(capsys):
     assert captured.out == FLIPPER_SD_INFO_PRINT
 
 
-@patch('os.path.exists')
+@patch("os.path.exists")
 def test_check_file_presence(patch_exists):
     # Test missing file
     patch_exists.return_value = False
@@ -273,7 +273,7 @@ def test_storage_read():
 
 def test_save_file(capsys):
     mock_write = mock_open()
-    with patch.object(builtins, 'open', mock_write, create=True) as patched_open:
+    with patch.object(builtins, "open", mock_write, create=True) as patched_open:
         save_file(STORAGE_READ_01_CONTENT.decode(),
                 "/tmp/file_2_save.txt",
                 output=False)
@@ -293,7 +293,7 @@ def test_download_from_flipper(capsys):
     f0 = Serial()
     f0._out_buffer = STORAGE_READ_01_RAW
     mock_write = mock_open()
-    with patch.object(builtins, 'open', mock_write, create=True) as patched_open:
+    with patch.object(builtins, "open", mock_write, create=True) as patched_open:
         download_from_flipper(f0, "/tmp/file_2_save.txt", output=False)
     captured = capsys.readouterr()
     assert captured.out == "Save to /tmp/file_2_save.txt\n"
@@ -306,7 +306,7 @@ STORAGE_WRITE_01_OUT = STORAGE_WRITE_01_HEADER + \
 STORAGE_WRITE_01_RAW = STORAGE_WRITE_01_OUT + \
     STORAGE_WRITE_01_FOOTER
 
-@patch('os.path.exists')
+@patch("os.path.exists")
 def test_upload_to_flipper(patch_exists, capsys):
     f0 = Serial()
     f0._out_buffer = STORAGE_WRITE_01_RAW
@@ -384,7 +384,7 @@ Command: help
 
     with monkeypatch.context() as m:
         mock_write = mock_open()
-        with patch.object(builtins, 'open', mock_write, create=True) as patched_open:
+        with patch.object(builtins, "open", mock_write, create=True) as patched_open:
             call_with(m, ["--filename=/tmp/to_save.txt",
                           "storage", "read", "/ext/badusb/demo_macos.txt"],
                       {"FLIPPER_ZERO_PORT": "/dev/flipper0"})

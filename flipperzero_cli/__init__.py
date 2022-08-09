@@ -23,11 +23,11 @@ def load_config():
 
     parser.add_argument("-p", "--port", default=port)
     parser.add_argument("-f", "--filename", default=filename)
-    parser.add_argument("--show-config", action='store_true',
+    parser.add_argument("--show-config", action="store_true",
                         default=False)
-    parser.add_argument("--show-banner", action='store_true',
+    parser.add_argument("--show-banner", action="store_true",
                         default=strtobool(show_banner))
-    parser.add_argument("--hide-command", action='store_true',
+    parser.add_argument("--hide-command", action="store_true",
                         default=strtobool(hide_command))
 
     (args, command) = parser.parse_known_args()
